@@ -46,9 +46,7 @@ FROM main-pre-pip as main
 COPY --chown=${USERNAME}:${USERNAME} requirements.txt ./
 # Install all dependencies, which should be explicit in `requirements.txt`
 RUN pip install --no-deps -r requirements.txt \
-    && rm -rf "${HOME}/.cache" \
-    # Run Pyright so its Node.js package gets installed
-    && pyright .
+    && rm -rf "${HOME}/.cache"
 
 # Copy whole repo and install
 COPY --chown=${USERNAME}:${USERNAME} . .
