@@ -161,3 +161,10 @@ cython_debug/
 
 checkpoints/
 wandb/
+
+# ruff
+.ruff_cache
+
+requirements.txt.new
+.build
+.python-version
