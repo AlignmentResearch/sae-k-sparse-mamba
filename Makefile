@@ -42,8 +42,7 @@ requirements.txt: requirements.txt.new
 .PHONY: local-install
 local-install: requirements.txt
 	pip install --no-deps -r requirements.txt
-	pip install --config-settings editable_mode=compat \
-        -e ".[dev-local]" -e ./third_party/stable-baselines3 -e ./third_party/gym-sokoban -e ./third_party/farconf
+	pip install --config-settings editable_mode=compat -e ".[dev-local]"
 
 
 .PHONY: build build/%

@@ -19,6 +19,9 @@ spec:
       - name: dotfiles
         configMap:
           name: dotfiles
+      - name: training
+        persistentVolumeClaim:
+          claimName: sae
 
       containers:
       - name: devbox-container
@@ -28,17 +31,10 @@ spec:
           - bash
           - -c
           - |
-            sudo mkdir -p "/opt/sokoban_cache"
-            sudo chown -R dev:dev "/opt/"
-            sudo mkdir -p "/training/cleanba"
-            sudo chown dev:dev "/training/cleanba"
-            git clone https://github.com/google-deepmind/boxoban-levels "/opt/sokoban_cache/boxoban-levels-master"
             git pull
             git checkout {COMMIT_HASH}
             git submodule update --recursive
-            pip install matplotlib jupyter
-            pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-            sleep 1d
+            sleep 2d
         resources:
           requests:
             cpu: {CPU}
@@ -74,6 +70,8 @@ spec:
         - name: dotfiles
           mountPath: /home/dev/.tmux.conf
           subPath: tmux.conf
+        - name: training
+          mountPath: {TRAINING_MOUNT}
 
       restartPolicy: Never
       imagePullSecrets:

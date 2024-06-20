@@ -25,6 +25,16 @@ RUN apt-get update -q \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Devbox niceties
+WORKDIR "/devbox-niceties"
+## the Unison file synchronizer
+RUN curl -OL https://github.com/bcpierce00/unison/releases/download/v2.53.4/unison-2.53.4-ubuntu-x86_64-static.tar.gz \
+    && tar xf unison-2.53.4-ubuntu-x86_64-static.tar.gz \
+    && mv bin/unison bin/unison-fsmonitor /usr/local/bin/ \
+    && rm -rf /devbox-niceties \
+## Terminfo for the Alacritty terminal
+    && curl -L https://raw.githubusercontent.com/alacritty/alacritty/master/extra/alacritty.info | tic -x /dev/stdin
+
 # Simulate virtualenv activation
 ENV VIRTUAL_ENV="/opt/venv"
 ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
@@ -46,7 +56,8 @@ FROM main-pre-pip as main
 COPY --chown=${USERNAME}:${USERNAME} requirements.txt ./
 # Install all dependencies, which should be explicit in `requirements.txt`
 RUN pip install --no-deps -r requirements.txt \
-    && rm -rf "${HOME}/.cache"
+    && rm -rf "${HOME}/.cache" \
+    && pyright .
 
 # Copy whole repo and install
 COPY --chown=${USERNAME}:${USERNAME} . .
