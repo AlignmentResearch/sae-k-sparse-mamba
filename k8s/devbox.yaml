@@ -47,7 +47,7 @@ spec:
         - name: WANDB_MODE
           value: offline
         - name: WANDB_PROJECT
-          value: lp-cleanba
+          value: sae
         - name: WANDB_ENTITY
           value: farai
         - name: WANDB_RUN_GROUP
