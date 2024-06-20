@@ -66,6 +66,8 @@ spec:
               key: api-key
         - name: GIT_CONFIG_PARAMETERS
           value: "'credential.https://github.com.username=$(GITHUB_PAT)'"
+        - name: HF_DATASETS_CACHE
+          value: "/training/.huggingface-cache"
         volumeMounts:
         - name: dotfiles
           mountPath: /home/dev/.tmux.conf

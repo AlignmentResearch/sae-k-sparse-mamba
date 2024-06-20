@@ -23,7 +23,7 @@ spec:
       volumes:
       - name: training
         persistentVolumeClaim:
-          claimName: learned-planners
+          claimName: sae
       containers:
       - name: devbox-container
         image: "ghcr.io/alignmentresearch/sae-k-sparse-mamba:{CONTAINER_TAG}"
@@ -71,6 +71,8 @@ spec:
           value: {WANDB_RUN_GROUP}
         - name: WANDB_MODE
           value: {WANDB_MODE}
+        - name: HF_DATASETS_CACHE
+          value: "/training/.huggingface-cache"
         volumeMounts:
         - name: training
           mountPath: {TRAINING_MOUNT}

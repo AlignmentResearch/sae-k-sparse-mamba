@@ -81,6 +81,8 @@ spec:
           value: {WANDB_RUN_GROUP}
         - name: WANDB_MODE
           value: {WANDB_MODE}
+        - name: HF_DATASETS_CACHE
+          value: "/training/.huggingface-cache"
       restartPolicy: Never
       imagePullSecrets:
       - name: docker
