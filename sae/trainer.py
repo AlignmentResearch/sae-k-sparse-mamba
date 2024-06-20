@@ -3,14 +3,12 @@ from typing import Sized
 
 import torch
 import torch.distributed as dist
-from torch import nn, Tensor
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch import Tensor, nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, Dataset
 from tqdm.auto import tqdm
-from transformers import get_linear_schedule_with_warmup, PreTrainedModel
+from transformers import PreTrainedModel, get_linear_schedule_with_warmup
 
-from . import __version__
 from .config import TrainConfig
 from .sae import Sae
 from .utils import geometric_median
@@ -24,7 +22,7 @@ class SaeTrainer:
         if not cfg.layers:
             N = model.config.num_hidden_layers
             cfg.layers = list(range(0, N, cfg.layer_stride))
-        
+
         self.cfg = cfg
         self.dataset = dataset
         self.distribute_layers()
@@ -43,9 +41,9 @@ class SaeTrainer:
         # Auto-select LR using 1 / sqrt(d) scaling law from Figure 3 of the paper
         if (lr := cfg.lr) is None:
             # Base LR is 1e-4 for num latents = 2 ** 13
-            scale = d / (2 ** 14)
+            scale = d / (2**14)
 
-            lr = 2e-4 / scale ** 0.5
+            lr = 2e-4 / scale**0.5
             print(f"Auto-selected LR: {lr:.2e}")
 
         try:
@@ -134,10 +132,11 @@ class SaeTrainer:
                     # Wrap the SAEs with Distributed Data Parallel. We have to do this
                     # after we set the decoder bias, otherwise DDP will not register
                     # gradients flowing to the bias after the first step.
-                    maybe_wrapped = [
-                        DDP(sae, device_ids=[dist.get_rank()])
-                        for sae in self.saes
-                    ] if ddp else self.saes
+                    maybe_wrapped = (
+                        [DDP(sae, device_ids=[dist.get_rank()]) for sae in self.saes]
+                        if ddp
+                        else self.saes
+                    )
 
                 # Make sure the W_dec is still unit-norm
                 if raw.cfg.normalize_decoder:
@@ -152,7 +151,8 @@ class SaeTrainer:
                     out = wrapped(
                         chunk,
                         dead_mask=(
-                            self.num_tokens_since_fired[j] > self.cfg.dead_feature_threshold
+                            self.num_tokens_since_fired[j]
+                            > self.cfg.dead_feature_threshold
                             if self.cfg.auxk_alpha > 0
                             else None
                         ),
@@ -160,14 +160,16 @@ class SaeTrainer:
 
                     avg_fvu[j] += self.maybe_all_reduce(out.fvu.detach()) / denom
                     if self.cfg.auxk_alpha > 0:
-                        avg_auxk_loss[j] += self.maybe_all_reduce(out.auxk_loss.detach()) / denom
+                        avg_auxk_loss[j] += (
+                            self.maybe_all_reduce(out.auxk_loss.detach()) / denom
+                        )
 
                     loss = out.fvu + self.cfg.auxk_alpha * out.auxk_loss
                     loss.div(acc_steps).backward()
 
                     # Update the did_fire mask
                     did_fire[j][out.latent_indices.flatten()] = True
-                    self.maybe_all_reduce(did_fire[j], "max")    # max is boolean "any"
+                    self.maybe_all_reduce(did_fire[j], "max")  # max is boolean "any"
 
                 # Clip gradient norm independently for each SAE
                 torch.nn.utils.clip_grad_norm_(raw.parameters(), 1.0)
@@ -191,17 +193,27 @@ class SaeTrainer:
                     did_fire.zero_()  # reset the mask
                     num_tokens_in_step = 0
 
-                if self.cfg.log_to_wandb and (step + 1) % self.cfg.wandb_log_frequency == 0:
+                if (
+                    self.cfg.log_to_wandb
+                    and (step + 1) % self.cfg.wandb_log_frequency == 0
+                ):
                     info = {}
 
                     for j in range(len(self.saes)):
-                        mask = self.num_tokens_since_fired[j] > self.cfg.dead_feature_threshold
+                        mask = (
+                            self.num_tokens_since_fired[j]
+                            > self.cfg.dead_feature_threshold
+                        )
                         layer_idx = self.cfg.layers[j]
 
-                        info.update({
-                            f"fvu/layer_{layer_idx}": avg_fvu[j].item(),
-                            f"dead_pct/layer_{layer_idx}": mask.mean(dtype=torch.float32).item(),
-                        })
+                        info.update(
+                            {
+                                f"fvu/layer_{layer_idx}": avg_fvu[j].item(),
+                                f"dead_pct/layer_{layer_idx}": mask.mean(
+                                    dtype=torch.float32
+                                ).item(),
+                            }
+                        )
                         if self.cfg.auxk_alpha > 0:
                             info[f"auxk/layer_{layer_idx}"] = avg_auxk_loss[j].item()
 
@@ -221,7 +233,7 @@ class SaeTrainer:
 
         self.save()
         pbar.close()
-    
+
     def maybe_all_cat(self, x: Tensor) -> Tensor:
         """Concatenate a tensor across all processes."""
         if not dist.is_initialized() or self.cfg.distribute_layers:
@@ -231,7 +243,6 @@ class SaeTrainer:
         dist.all_gather_into_tensor(buffer, x)
         return buffer
 
-    
     def maybe_all_reduce(self, x: Tensor, op: str = "mean") -> Tensor:
         if not dist.is_initialized() or self.cfg.distribute_layers:
             return x
@@ -247,7 +258,7 @@ class SaeTrainer:
             raise ValueError(f"Unknown reduction op '{op}'")
 
         return x
-    
+
     def distribute_layers(self):
         """Prepare a plan for distributing layers across ranks."""
         if not self.cfg.distribute_layers:
@@ -260,12 +271,14 @@ class SaeTrainer:
 
         # Each rank gets a subset of the layers
         self.layer_plan = {
-            rank: self.cfg.layers[start:start + layers_per_rank]
-            for rank, start in enumerate(range(0, len(self.cfg.layers), layers_per_rank))
+            rank: self.cfg.layers[start : start + layers_per_rank]
+            for rank, start in enumerate(
+                range(0, len(self.cfg.layers), layers_per_rank)
+            )
         }
         for rank, layers in self.layer_plan.items():
             print(f"Rank {rank} layers: {layers}")
-        
+
         self.cfg.layers = self.layer_plan[dist.get_rank()]
 
     def scatter_hiddens(self, hidden_list: list[Tensor]) -> list[Tensor]:
@@ -294,7 +307,9 @@ class SaeTrainer:
 
     def save(self):
         """Save the SAEs to disk."""
-        if (dist.is_initialized() and dist.get_rank() != 0) and not self.cfg.distribute_layers:
+        if (
+            dist.is_initialized() and dist.get_rank() != 0
+        ) and not self.cfg.distribute_layers:
             return
 
         for i, sae in zip(self.cfg.layers, self.saes):

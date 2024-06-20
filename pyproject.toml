@@ -20,6 +20,7 @@ dependencies = [
     "transformers",
     "transformer_lens",
     "triton",
+    "mamba_lens @ git+https://github.com/Phylliida/MambaLens.git",
     # format/CI
     "ruff",
     "pyright",
@@ -49,6 +50,8 @@ line-length = 88
 # Enable pycodestyle (`E`), Pyflakes (`F`), and isort (`I`) codes
 # See https://beta.ruff.rs/docs/rules/ for more possible rules
 select = ["E", "F", "I"]
+# Make jaxtyping usable
+ignore = ["F722"]
 # Avoid automatically removing unused imports in __init__.py files.
 # Such imports will be flagged with a dedicated message suggesting
 # that the import is either added to the module's __all__ symbol

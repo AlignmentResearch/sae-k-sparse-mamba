@@ -6,7 +6,7 @@ import einops
 import torch
 from jaxtyping import Float, Int64
 from safetensors.torch import load_model, save_model
-from torch import nn, Tensor
+from torch import Tensor, nn
 
 from .config import SaeConfig
 from .kernels import TritonDecoder
@@ -43,7 +43,7 @@ class Sae(nn.Module):
 
         self.encoder = nn.Linear(d_in, d_sae, device=device, dtype=dtype)
         self.encoder.bias.data.zero_()
-        self.encoder.weight.data *= 0.1    # Small init means FVU starts below 1.0
+        self.encoder.weight.data *= 0.1  # Small init means FVU starts below 1.0
 
         self.W_dec = nn.Parameter(self.encoder.weight.data.clone())
         if self.cfg.normalize_decoder:
@@ -70,10 +70,13 @@ class Sae(nn.Module):
 
         save_model(self, str(path / "sae.safetensors"))
         with open(path / "cfg.json", "w") as f:
-            json.dump({
-                **self.cfg.to_dict(),
-                "d_in": self.d_in,
-            }, f)
+            json.dump(
+                {
+                    **self.cfg.to_dict(),
+                    "d_in": self.d_in,
+                },
+                f,
+            )
 
     @property
     def device(self):

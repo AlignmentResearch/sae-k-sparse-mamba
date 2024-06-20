@@ -1,14 +1,17 @@
+import os
 from contextlib import nullcontext, redirect_stdout
 from dataclasses import dataclass
-import os
+from multiprocessing import cpu_count
 
 import torch
 import torch.distributed as dist
 from datasets import Dataset, load_dataset
-from multiprocessing import cpu_count
 from simple_parsing import field, parse
 from transformers import (
-    AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, PreTrainedModel,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    PreTrainedModel,
 )
 
 from .data import chunk_and_tokenize
@@ -47,7 +50,8 @@ class RunConfig(TrainConfig):
     """Number of processes to use for preprocessing data"""
 
     attn_implementation: str = "sdpa"
-    """Which implementation to use for attention in `transformers`. Pythia models require "eager"."""
+    """Which implementation to use for attention in `transformers`. Pythia models
+    require "eager"."""
 
 
 def load_artifacts(args: RunConfig, rank: int) -> tuple[PreTrainedModel, Dataset]:
@@ -78,7 +82,12 @@ def load_artifacts(args: RunConfig, rank: int) -> tuple[PreTrainedModel, Dataset
         trust_remote_code=True,
     )
     tokenizer = AutoTokenizer.from_pretrained(args.model, token=args.hf_token)
-    dataset = chunk_and_tokenize(dataset, tokenizer, max_seq_len=args.ctx_len, num_proc=args.data_preprocessing_num_proc)
+    dataset = chunk_and_tokenize(
+        dataset,
+        tokenizer,
+        max_seq_len=args.ctx_len,
+        num_proc=args.data_preprocessing_num_proc,
+    )
 
     return model, dataset
 

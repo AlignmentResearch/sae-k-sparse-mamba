@@ -44,6 +44,7 @@ docstring-parser==0.16
     # via simple-parsing
 einops==0.8.0
     # via
+    #   mamba-lens
     #   sae (pyproject.toml)
     #   transformer-lens
 exceptiongroup==1.2.1
@@ -84,10 +85,13 @@ iniconfig==2.0.0
     # via pytest
 jaxtyping==0.2.30
     # via
+    #   mamba-lens
     #   sae (pyproject.toml)
     #   transformer-lens
 jinja2==3.1.4
     # via torch
+mamba-lens @ git+https://github.com/Phylliida/MambaLens.git
+    # via sae (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
 markupsafe==2.1.5
@@ -227,6 +231,7 @@ tomli==2.0.1
 # DISABLED torch==2.3.1
     # via
     #   accelerate
+    #   mamba-lens
     #   sae (pyproject.toml)
     #   transformer-lens
 tqdm==4.66.4
@@ -236,7 +241,9 @@ tqdm==4.66.4
     #   transformer-lens
     #   transformers
 transformer-lens==2.1.0
-    # via sae (pyproject.toml)
+    # via
+    #   mamba-lens
+    #   sae (pyproject.toml)
 transformers==4.41.2
     # via
     #   sae (pyproject.toml)

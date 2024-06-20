@@ -1,6 +1,5 @@
-from torch import Tensor
 import torch
-import torch.distributed as dist
+from torch import Tensor
 
 
 @torch.no_grad()
